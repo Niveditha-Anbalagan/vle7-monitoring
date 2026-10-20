@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k8s-alerts
+  labels:
+    release: monitoring
+spec:
+  groups:
+  - name: k8s-alerts
+    rules:
+    - alert: PodCrashLoop
+      expr: kube_pod_container_status_restarts_total > 3
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod {{ $labels.pod }} restarted more than 3 times"
+    - alert: HighCPUUsage
+      expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "CPU usage above 80% on {{ $labels.instance }}"
+    - alert: NodeDown
+      expr: up{job="node-exporter"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Node exporter target {{ $labels.instance }} is down"
